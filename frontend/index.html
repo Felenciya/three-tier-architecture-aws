@@ -1,0 +1,111 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Feedback Management System</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>Feedback Management System</h1>
+        <p>Submit your feedback and see what others have shared</p>
+
+        <div class="feedback-container">
+            <h2>Feedback from Users</h2>
+            <div id="feedback-box">Loading...</div>
+        </div>
+
+        <div class="form-container">
+            <h2>Submit Feedback</h2>
+            <form id="feedback-form">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required />
+                </div>
+                <div class="form-group">
+                    <label for="feedback">Feedback:</label>
+                    <textarea id="feedback" name="feedback" rows="4" required></textarea>
+                </div>
+                <button type="submit">Submit Feedback</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            loadFeedback();
+
+            document.getElementById('feedback-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const name = document.getElementById('name').value.trim();
+                const feedback = document.getElementById('feedback').value.trim();
+
+                if (!name || !feedback) {
+                    alert('Please enter both Name and Feedback.');
+                    return;
+                }
+
+                fetch('api/save_feedback.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `name=${encodeURIComponent(name)}&feedback=${encodeURIComponent(feedback)}`
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('name').value = '';
+                            document.getElementById('feedback').value = '';
+                            loadFeedback();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    })
+                    .catch(() => alert('Error saving feedback.'));
+            });
+        });
+
+        function loadFeedback() {
+            const box = document.getElementById('feedback-box');
+            box.textContent = 'Loading...';
+
+            fetch('api/get_feedback.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.feedback.length === 0) {
+                            box.innerHTML = '<p class="no-feedback">No feedback available yet.</p>';
+                            return;
+                        }
+
+                        let html = '<ul>';
+                        data.feedback.forEach(item => {
+                            html += `<li><strong>${escapeHtml(item.name)}</strong>: ${escapeHtml(item.feedback)} <span class="timestamp">(${item.created_at})</span></li>`;
+                        });
+                        html += '</ul>';
+                        box.innerHTML = html;
+                    } else {
+                        box.innerHTML = `<p class="error">${data.error}</p>`;
+                    }
+                })
+                .catch(() => {
+                    box.innerHTML = '<p class="error">Failed to load feedback.</p>';
+                });
+        }
+
+        // Basic escape for HTML injection protection in JS
+        function escapeHtml(text) {
+            return text.replace(/[&<>"']/g, function (m) {
+                return ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                })[m];
+            });
+        }
+    </script>
+</body>
+</html>
