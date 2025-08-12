@@ -1,5 +1,5 @@
 <?php
-// api/save_feedback.php
+// api/save_message.php
 header('Content-Type: application/json');
 
 require_once 'db_connection.php';
